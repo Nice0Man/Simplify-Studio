@@ -1,7 +1,7 @@
 # Simplify-Studio
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/Nice0Man/Simplify-Studio/build.yml)](https://github.com/Nice0Man/Simplify-Studio/actions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/Nice0Man/Simplify-Studio/blank.yml)](https://github.com/Nice0Man/Simplify-Studio/actions)
 [![Code Coverage](https://img.shields.io/codecov/c/github/Nice0Man/Simplify-Studio)](https://codecov.io/gh/Nice0Man/Simplify-Studio)  
 
 **Автоматизированная система управления сборками для C/C++ проектов.**  
