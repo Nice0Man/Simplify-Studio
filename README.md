@@ -29,5 +29,9 @@
 ### Установка  
 ```bash  
 git clone https://github.com/Nice0Man/Simplify-Studio.git  
+<<<<<<< HEAD
 cd Simplify-Studio
+=======
+cd Buildify-Studio  
+>>>>>>> a6c36d6b6565249579d4fd674d54457c34e7cd72
 ```  
