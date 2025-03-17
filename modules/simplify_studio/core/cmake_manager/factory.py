@@ -1,125 +1,65 @@
-from modules.simplify_studio.core.config.loader import Metadata, CMakeSettings
+from inspect import isabstract
+from typing import Type, Dict
+
+from modules.simplify_studio.core.cmake_manager import template
+from modules.simplify_studio.core.cmake_manager.template import CMakeTemplate
 
 
-class CMakeCommandStrategy:
+class CMakeCommand:
     """
-    Base class for CMake command strategies.
+    Abstract base class for CMake commands.
+
+    This class defines a common interface for all CMake command classes.
+    Subclasses must implement the __str__ method to generate the CMake command string.
     """
 
-    def generate(self) -> str:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __str__(self) -> str:
         """
         Generate the CMake command string.
 
         :return: str - The CMake command string.
         """
-        raise NotImplementedError("Subclasses should implement this method.")
+        pass
 
 
-class CMakeHeaderStrategy(CMakeCommandStrategy):
-    def __init__(self, metadata: Metadata, cmake_settings: CMakeSettings):
-        self.metadata = metadata
-        self.cmake_settings = cmake_settings
+class CMakeCommandFactory:
+    """
+    Factory for creating CMake command objects using automatic registry pattern.
+    """
 
-    def generate(self) -> str:
+    _command_registry: Dict[str, Type[CMakeTemplate]] = {}
+
+    @classmethod
+    def register_commands(cls):
         """
-        Generate the CMake header command string.
-
-        :return: str - The CMake header command string.
+        Register all command classes from the template module.
         """
-        return CMAKE_HEADER_TEMPLATE.format(
-            cmake_version=self.cmake_settings.options.get("CMAKE_MINIMUM_REQUIRED_VERSION", "3.10"),
-            project_name=self.metadata.name,
-            project_version=self.metadata.version,
-        )
+        for name in dir(template):
+            obj = getattr(template, name)
+            if (
+                isinstance(obj, type)
+                and not isabstract(obj)
+                and issubclass(obj, CMakeTemplate)
+                and hasattr(obj, "command_key")  # Ensure it's not abstract
+            ):
+                cls._command_registry[obj().command_key] = obj
 
-
-class CMakeCompilerSettingsStrategy(CMakeCommandStrategy):
-    def __init__(self, cmake_settings: CMakeSettings):
-        self.cmake_settings = cmake_settings
-
-    def generate(self) -> str:
+    @classmethod
+    def create_command(cls, command_key: str, **kwargs) -> str:
         """
-        Generate the CMake compiler settings command string.
+        Create a CMake command instance using registered command classes.
 
-        :return: str - The CMake compiler settings command string.
+        :param command_key: Key identifier for CMake command
+        :param kwargs: Keyword arguments for command constructor
+        :returns: Configured CMake command instance
+        :raises ValueError: For unregistered command keys
         """
-        flags = " ".join(self.cmake_settings.options.get("flags", []))
-        return CMAKE_COMPILER_SETTINGS_TEMPLATE.format(
-            cxx_standard=self.cmake_settings.options.get("CMAKE_CXX_STANDARD", 17), flags=flags
-        )
+        if template_class := cls._command_registry.get(command_key):
+            template_instance = template_class().generate(**kwargs)
+            return template_instance
 
-
-class CMakeIncludeDirectoriesStrategy(CMakeCommandStrategy):
-    def __init__(self, structure: Dict[str, DirectoryNode]):
-        self.structure = structure
-
-    def generate(self) -> str:
-        """
-        Generate the CMake include directories command string.
-
-        :return: str - The CMake include directories command string.
-        """
-        include_dirs = []
-        for dir_name, directory_node in self.structure.items():
-            if dir_name == "src":
-                include_dirs.append(CMAKE_INCLUDE_DIRECTORIES_TEMPLATE.format(directory=dir_name))
-                for subdir in directory_node:
-                    include_dirs.append(
-                        CMAKE_INCLUDE_DIRECTORIES_TEMPLATE.format(
-                            directory=f"{dir_name}/{subdir.name}"
-                        )
-                    )
-        return "\n".join(include_dirs)
-
-
-class CMakeSourceFilesStrategy(CMakeCommandStrategy):
-    def __init__(self, structure: Dict[str, DirectoryNode]):
-        self.structure = structure
-
-    def generate(self) -> str:
-        """
-        Generate the CMake source files command string.
-
-        :return: str - The CMake source files command string.
-        """
-        source_files = []
-        for dir_name, directory_node in self.structure.items():
-            if dir_name == "src":
-                for subdir in directory_node:
-                    source_files.append(
-                        CMAKE_SOURCE_FILES_TEMPLATE.format(
-                            subdir_name=subdir.name, directory=dir_name
-                        )
-                    )
-        return "\n".join(source_files)
-
-
-class CMakeDependenciesStrategy(CMakeCommandStrategy):
-    def __init__(self, dependencies: Dict[str, Dependency]):
-        self.dependencies = dependencies
-
-    def generate(self) -> str:
-        """
-        Generate the CMake dependencies command string.
-
-        :return: str - The CMake dependencies command string.
-        """
-        dependency_commands = []
-        for name, dependency in self.dependencies.items():
-            dependency_commands.append(
-                CMAKE_DEPENDENCIES_TEMPLATE.format(name=name, git_repo=dependency.git)
-            )
-        return "\n".join(dependency_commands)
-
-
-class CMakeCustomCommandsStrategy(CMakeCommandStrategy):
-    def __init__(self, cmake_settings: CMakeSettings):
-        self.custom_commands = cmake_settings.options.get("custom_commands", [])
-
-    def generate(self) -> str:
-        """
-        Generate the CMake custom commands string.
-
-        :return: str - The CMake custom commands string.
-        """
-        return "\n".join(self.custom_commands)
+        available = ", ".join(cls._command_registry.keys())
+        raise ValueError(f"Unknown command key: {command_key}. Available commands: {available}")

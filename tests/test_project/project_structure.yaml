@@ -4,35 +4,27 @@ author: Your Name
 
 directories:
   src:
-    utils:
-      - description: Utility functions
+    main:
+      core:
+      utils:
         math:
-          - description: Mathematical utilities
         string:
-          - description: String manipulation utilities
-  tests:
-    unit_tests:
-      - description: Unit tests for the project
-        utils_tests:
-          - description: Tests for utility functions
+    tests:
+      unit_tests:
+      utils_tests:
   docs:
     api_docs:
-      - description: API documentation
-  build: []
-  cmake: []
 
 dependencies:
   external_lib:
-    git: https://github.com/Name/Repo.git
+    git: https://github.com/Nice0Man/cpp_template_repo.git
     version: 1.2.3
-    branch: main  # Optional: specify a branch
-    tag: v1.2.3  # Optional: specify a tag
-    commit: abcdef1234567890abcdef1234567890abcdef12  # Optional: specify a commit hash
+    branch: master
 
 compiler:
-  compiler_type: gcc  # Options: gcc, mingw, embedded
-  compiler_path: /usr/bin/gcc  # Path to the compiler executable
-  cxx_standard: 17  # C++ standard version
+  compiler_type: gccm  
+  compiler_path: /usr/bin/gcc
+  cxx_standard: 17
   flags:
     - -Wall
     - -Wextra
@@ -42,8 +34,8 @@ compiler:
     - USE_CUSTOM_ALLOCATOR
 
 cmake:
-  build_type: Release  # Options: Debug, Release, RelWithDebInfo, MinSizeRel
+  build_type: Release
   options:
     CMAKE_EXPORT_COMPILE_COMMANDS: ON
-    CMAKE_POSITION_INDEPENDENT_CODE: ON
-  custom_cmake_path: custom/CMakeLists.txt  # Optional: specify a custom CMake file path
+    CMAKE_CONFIGURATION_TYPES: "Release;Debug"
+    CMAKE_INSTALL_PREFIX: "/usr/local"

@@ -5,9 +5,9 @@ from typing import Any, Dict
 from rich.panel import Panel
 from rich.text import Text
 
-from modules.simplify_studio._api._cli.cli import console
-from modules.simplify_studio._api._commands.command import Command, CommandOutput
-from modules.simplify_studio._utils import utils
+from modules.simplify_studio.api.cli.cli import console
+from modules.simplify_studio.api.commands.command import Command, CommandOutput
+from modules.simplify_studio.utils import utils
 
 
 class Help(Command, CommandOutput):

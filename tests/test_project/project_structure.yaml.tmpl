@@ -42,8 +42,27 @@ compiler:
     - USE_CUSTOM_ALLOCATOR
 
 cmake:
-  build_type: Release  # Options: Debug, Release, RelWithDebInfo, MinSizeRel
+#  custom_cmake_path: "path/to/custom/CMakeLists.txt"
+  build_type: Release  # Debug/Release/RelWithDebInfo
   options:
     CMAKE_EXPORT_COMPILE_COMMANDS: ON
-    CMAKE_POSITION_INDEPENDENT_CODE: ON
-  custom_cmake_path: custom/CMakeLists.txt  # Optional: specify a custom CMake file path
+    CMAKE_CONFIGURATION_TYPES: "Release;Debug"  # Для мультиконфигурационных генераторов
+    CMAKE_MSVC_RUNTIME_LIBRARY: MultiThreaded  # Для статической линковки Runtime
+
+    # Установка
+    CMAKE_INSTALL_PREFIX: "C:\\Program Files\\MyCMakeProject"
+    CMAKE_INSTALL_BINDIR: bin
+    CMAKE_INSTALL_LIBDIR: lib
+
+    # Тестирование
+    BUILD_TESTING: ON
+    GTest_DIR: "C:\\libs\\googletest\\lib\\cmake\\GTest"
+
+    # Пакетирование
+    CPACK_GENERATOR: "NSIS;ZIP"
+    CPACK_NSIS_MODIFY_PATH: ON  # Добавить в PATH
+    CPACK_PACKAGE_NAME: "${PROJECT_NAME}"
+
+    # Windows-Specific
+    CMAKE_SUPPRESS_REGENERATION: TRUE  # Игнорировать .rule файлы
+    CMAKE_VS_PLATFORM_TOOLSET: "v143"  # Для Visual Studio 2022

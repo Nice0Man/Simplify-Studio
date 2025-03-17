@@ -3,8 +3,8 @@ import importlib.util
 import os
 import inspect
 from typing import Dict, List, Any
-from modules.simplify_studio._api import _commands as commands_pkg
-from modules.simplify_studio._api._commands.command import Command
+from modules.simplify_studio.api import commands as commands_pkg
+from modules.simplify_studio.api.commands.command import Command
 
 
 def get_module_description(root_path: str) -> str:
@@ -30,7 +30,7 @@ def get_module_description(root_path: str) -> str:
 
 def discover_commands() -> Dict[str, List[Dict[str, Any]]]:
     """
-    Recursively discovers all available commands in the `_commands` package
+    Recursively discovers all available commands in the `commands` package
     and groups them by module.
 
     Returns:
@@ -41,7 +41,7 @@ def discover_commands() -> Dict[str, List[Dict[str, Any]]]:
 
     for root, _, files in os.walk(base_path):
         module_pkg = os.path.basename(root)
-        if module_pkg == "_commands":
+        if module_pkg == "commands":
             continue
 
         module_description = get_module_description(root)

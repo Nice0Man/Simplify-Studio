@@ -5,7 +5,7 @@ from typing import Dict, Any, List
 
 from rich.console import Console
 
-from modules.simplify_studio._utils.utils import discover_commands
+from modules.simplify_studio.utils.utils import discover_commands
 
 console = Console()
 

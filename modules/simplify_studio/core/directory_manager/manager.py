@@ -1,149 +1,114 @@
+import logging
 import os
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Dict
-
-import yaml
-
-from modules.simplify_studio.core.dep_manager.manager import DependencyManager
+from typing import Dict, List
 
 
-class ProjectBuilder:
-    """
-    Builder class for creating and managing CMake C/C++ projects.
+@dataclass
+class DirectoryNode:
+    name: str
+    description: str = ""
+    subdirectories: List["DirectoryNode"] = field(default_factory=list)
 
-    This class provides a step-by-step approach to configure and create a project,
-    including directory structure setup, CMake configuration, dependency management,
-    and build system generation.
-    """
+    logger = logging.getLogger(__name__)
 
-    def __init__(self):
+    def create_directories(self, base_path: Path) -> None:
         """
-        Initialize a new ProjectBuilder instance with default settings.
+        Create this directory and its subdirectories.
+
+        :param base_path: The base path where this directory should be created.
+        :return: None
         """
-        self.project_name = None
-        self.project_path = None
-        self.config = {}
-        self.structure_template = {}
-        self.dependency_manager = None
-
-    def set_project_name(self, project_name: str) -> "ProjectBuilder":
-        """
-        Set the project name.
-
-        Args:
-            project_name: Name of the C/C++ project.
-
-        Returns:
-            ProjectBuilder: The current instance for method chaining.
-        """
-        self.project_name = project_name
-        return self
-
-    def set_project_path(self, project_path: str) -> "ProjectBuilder":
-        """
-        Set the project path.
-
-        Args:
-            project_path: Root directory where the project will be created.
-
-        Returns:
-            ProjectBuilder: The current instance for method chaining.
-        """
-        self.project_path = Path(project_path).absolute()
-        return self
-
-    def set_config(self, config: Optional[Dict] = None) -> "ProjectBuilder":
-        """
-        Set the project configuration.
-
-        Args:
-            config: Optional configuration dictionary with project settings.
-
-        Returns:
-            ProjectBuilder: The current instance for method chaining.
-        """
-        self.config = config or {}
-        return self
-
-    def load_structure_template(
-        self, template_file: Optional[str] = None
-    ) -> "ProjectBuilder":
-        """
-        Load the project structure template from a YAML file or use a default template.
-
-        Args:
-            template_file: Path to a YAML file defining the project structure template.
-
-        Returns:
-            ProjectBuilder: The current instance for method chaining.
-        """
-        if template_file:
-            with open(template_file, "r") as file:
-                self.structure_template = yaml.safe_load(file)
-            # Initialize DependencyManager with the template file
-            self.dependency_manager = DependencyManager(
-                self.project_path, template_file
-            )
+        dir_path = base_path / self.name
+        if dir_path.exists():
+            self.logger.info(f"Directory already exists: {dir_path}")
         else:
-            self.structure_template = {
-                "src": [],
-                "include": [self.project_name],
-                "tests": [],
-                "build": [],
-                "docs": [],
-                "cmake": [],
-            }
-        return self
+            os.makedirs(dir_path, exist_ok=True)
+            self.logger.info(f"Created directory {dir_path}")
 
-    def create_project_directory(self) -> None:
+        for subdirectory in self.subdirectories:
+            subdirectory.create_directories(dir_path)
+
+    def add_subdirectory(self, node: "DirectoryNode") -> None:
         """
-        Create the main project directory.
+        Add a subdirectory to this directory node.
+
+        :param node: The subdirectory node to add.
+        :return: None
         """
-        os.makedirs(self.project_path, exist_ok=True)
+        self.subdirectories.append(node)
 
-    def create_subdirectories(self) -> None:
+    def __iter__(self):
         """
-        Create subdirectories based on the template.
+        Return an iterator over the subdirectories.
+
+        :return: Iterator[DirectoryNode] - An iterator over the subdirectories.
         """
-        for subdir, nested_dirs in self.structure_template.items():
-            subdir_path = self.project_path / subdir
-            os.makedirs(subdir_path, exist_ok=True)
-            for nested_dir in nested_dirs:
-                os.makedirs(subdir_path / nested_dir, exist_ok=True)
+        return iter(self.subdirectories)
 
-    def build(self) -> bool:
+    def __str__(self) -> str:
         """
-        Finalize the project creation process.
+        Return a string representation of the directory tree.
 
-        Returns:
-            bool: True if project creation was successful, False otherwise.
+        :return: str - A tree-like string representation of the directory structure.
         """
-        try:
-            self.create_project_directory()
-            self.create_subdirectories()
-            if self.dependency_manager:
-                self.dependency_manager.install_dependencies()
-            return True
-        except Exception as e:
-            print(f"Error creating project: {str(e)}")
-            return False
+        return self._tree_representation()
+
+    def _tree_representation(
+        self, is_last: bool = True, depth: int = 0, parent_prefix: str = ""
+    ) -> str:
+        """
+        Generate a tree-like string representation of the directory structure.
+
+        :param is_last: Is the node last in the list of subsidiaries of the parent.
+        :param depth: Current depth in a tree (for root = 0).
+        :param parent_prefix: Prefix for inheritance of indentation from the parent.
+        :return: str - A string representation of the node and its subdirectories.
+        """
+        current_prefix = ""
+        child_prefix = ""
+
+        if depth > 0:
+            current_prefix = parent_prefix + ("└── " if is_last else "├── ")
+            child_prefix = parent_prefix + ("    " if is_last else "│   ")
+
+        result = f"{current_prefix}{self.name}"
+        if self.description and depth == 0:
+            result += f": {self.description}"
+        result += "\n"
+
+        for i, child in enumerate(self.subdirectories):
+            is_last_child = i == len(self.subdirectories) - 1
+            result += child._tree_representation(
+                is_last=is_last_child, depth=depth + 1, parent_prefix=child_prefix
+            )
+
+        return result
 
 
-def main():
-    builder = ProjectBuilder()
-    success = (
-        builder.set_project_name("MyCMakeProject")
-        .set_project_path("./my_cmake_project")
-        .set_config({"CMAKE_CXX_STANDARD": "17", "ENABLE_TESTING": "ON"})
-        .load_structure_template("project_structure.yaml")
-        .build()
-    )
+class DirectoryManager:
+    """
+    Manages the creation of project directories.
+    """
 
-    if success:
-        print("Project created successfully.")
-    else:
-        print("Failed to create the project.")
+    def __init__(self, path: str, structure: Dict[str, DirectoryNode]):
+        """
+        Initialize the DirectoryManager.
 
+        :param path: Path to the project directory.
+        :param structure: Directory structure configuration.
+        :return: None
+        """
+        self.project_path = Path(path).absolute()
+        self.structure = structure
 
-if __name__ == "__main__":
-    main()
+    def create_directories(self) -> None:
+        """
+        Create directories based on the structure configuration.
+
+        :return: None
+        """
+        self.project_path.mkdir(parents=True, exist_ok=True)
+        for node in self.structure.values():  # type: DirectoryNode
+            node.create_directories(self.project_path)

@@ -3,14 +3,24 @@ name = "simplify-studio"
 version = "0.1.0"
 description = ""
 authors = [
-    {name = "Eugene",email = "e.krotov03@gmail.com"}
+    {name = "Eugene", email = "e.krotov03@gmail.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "black>=25.1.0,<26.0.0",
+    "rich>=13.9.4,<14.0.0",
+    "pyyaml>=6.0.2,<7.0.0",
+    "pytest[all] (>=8.3.5,<9.0.0)",
+    "pytest-mock (>=3.14.0,<4.0.0)"
 ]
-
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+# Настройки Black
+line-length = 100  # Максимальная длина строки
+target-version = ['py313']  # Целевая версия Python
+include = '\.pyi?$'  # Включать файлы .py и .pyi

@@ -1,4 +1,4 @@
-from modules.simplify_studio._api._commands.command import Command
+from modules.simplify_studio.api.commands.command import Command
 
 
 class Config(Command):
