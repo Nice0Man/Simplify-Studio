@@ -1,0 +1,493 @@
+# """
+# ProjectBuilder - A tool for creating and managing CMake C/C++ projects according to best practices.
+#
+# This module provides a comprehensive set of classes for generating and managing
+# CMake-based C/C++ projects with proper structure, dependency management, and
+# build configuration.
+# """
+#
+# import logging
+# import os
+# import subprocess
+# from pathlib import Path
+# from typing import Optional
+#
+# from modules.simplify_studio.config.project_config import ProjectConfig
+#
+#
+# class ProjectBuilder:
+#     """
+#     Main class for creating and managing CMake C/C++ projects.
+#
+#     This class orchestrates the entire project creation and management process,
+#     including directory structure setup, CMake configuration, dependency management,
+#     and build system generation.
+#     """
+#
+#     def __init__(
+#         self,
+#         project_name: str,
+#         project_path: str,
+#         config: Optional[ProjectConfig] = None,
+#     ):
+#         """
+#         Initialize a new ProjectBuilder instance.
+#
+#         Args:
+#             project_name: Name of the C/C++ project
+#             project_path: Root directory where the project will be created
+#             config: Optional configuration object with project settings
+#         """
+#         self.project_name = project_name
+#         self.project_path = Path(project_path).absolute()
+#         self.config = config or ProjectConfig()
+#
+#         # Initialize components
+#         self.structure = ProjectStructure(
+#             self.project_path, self.project_name, self.config
+#         )
+#         self.cmake_generator = CMakeGenerator(self.project_name, self.config)
+#         self.dependency_manager = DependencyManager(self.project_path, self.config)
+#
+#         self.logger = logging.getLogger("ProjectBuilder")
+#
+#     def create_project(self) -> bool:
+#         """
+#         Create a new CMake C/C++ project with the configured settings.
+#
+#         Returns:
+#             bool: True if project creation was successful, False otherwise
+#         """
+#         try:
+#             self.logger.info(
+#                 f"Creating new project '{self.project_name}' at {self.project_path}"
+#             )
+#
+#             # Create project directory structure
+#             self.structure.create_directory_structure()
+#
+#             # Generate root CMakeLists.txt
+#             root_cmakelists = self.cmake_generator.generate_root_cmakelists()
+#             root_cmakelists_path = self.project_path / "CMakeLists.txt"
+#             with open(root_cmakelists_path, "w") as f:
+#                 f.write(root_cmakelists)
+#
+#             # Generate src CMakeLists.txt
+#             src_cmakelists = self.cmake_generator.generate_src_cmakelists()
+#             src_cmakelists_path = self.project_path / "src" / "CMakeLists.txt"
+#             with open(src_cmakelists_path, "w") as f:
+#                 f.write(src_cmakelists)
+#
+#             # Generate tests CMakeLists.txt if testing is enabled
+#             if self.config.enable_testing:
+#                 tests_cmakelists = self.cmake_generator.generate_tests_cmakelists()
+#                 tests_cmakelists_path = self.project_path / "tests" / "CMakeLists.txt"
+#                 with open(tests_cmakelists_path, "w") as f:
+#                     f.write(tests_cmakelists)
+#
+#             # Create initial source files
+#             self._create_initial_source_files()
+#
+#             # Setup dependencies
+#             self.dependency_manager.setup_dependencies()
+#
+#             # Generate build system
+#             if self.config.generate_build_system:
+#                 self.generate_build_system()
+#
+#             self.logger.info(f"Project '{self.project_name}' created successfully")
+#             return True
+#
+#         except Exception as e:
+#             self.logger.error(f"Error creating project: {str(e)}")
+#             return False
+#
+#     def _create_initial_source_files(self):
+#         """Create initial source files for the project."""
+#         # Create main.cpp
+#         main_cpp = self.project_path / "src" / "main.cpp"
+#         with open(main_cpp, "w") as f:
+#             f.write(
+#                 f"""/**
+#  * {self.project_name}
+#  *
+#  * Main entry point for the application.
+#  */
+# #include <iostream>
+#
+# int main(int argc, char** argv) {{
+#     std::cout << "Hello from {self.project_name}!" << std::endl;
+#     return 0;
+# }}
+# """
+#             )
+#
+#         # Create header file
+#         header_file = (
+#             self.project_path / "include" / self.project_name / f"{self.project_name}.h"
+#         )
+#         os.makedirs(header_file.parent, exist_ok=True)
+#         with open(header_file, "w") as f:
+#             header_guard = f"{self.project_name.upper()}_H"
+#             f.write(
+#                 f"""/**
+#  * {self.project_name}.h
+#  *
+#  * Main header file for the {self.project_name} library.
+#  */
+# #ifndef {header_guard}
+# #define {header_guard}
+#
+# namespace {self.project_name} {{
+#
+# // Library code goes here
+#
+# }} // namespace {self.project_name}
+#
+# #endif // {header_guard}
+# """
+#             )
+#
+#     def generate_build_system(self, build_type: str = "Debug") -> bool:
+#         """
+#         Generate the build system using CMake.
+#
+#         Args:
+#             build_type: CMake build type (Debug, Release, RelWithDebInfo, MinSizeRel)
+#
+#         Returns:
+#             bool: True if build system generation was successful, False otherwise
+#         """
+#         try:
+#             build_dir = self.project_path / "build"
+#             os.makedirs(build_dir, exist_ok=True)
+#
+#             # Run CMake to generate build system
+#             cmd = [
+#                 "cmake",
+#                 "-S",
+#                 str(self.project_path),
+#                 "-B",
+#                 str(build_dir),
+#                 f"-DCMAKE_BUILD_TYPE={build_type}",
+#             ]
+#
+#             # Add any additional CMake options from config
+#             for option, value in self.config.cmake_options.items():
+#                 cmd.append(f"-D{option}={value}")
+#
+#             self.logger.info(f"Generating build system with command: {' '.join(cmd)}")
+#             result = subprocess.run(cmd, capture_output=True, text=True)
+#
+#             if result.returncode != 0:
+#                 self.logger.error(f"CMake generation failed: {result.stderr}")
+#                 return False
+#
+#             self.logger.info("Build system generated successfully")
+#             return True
+#
+#         except Exception as e:
+#             self.logger.error(f"Error generating build system: {str(e)}")
+#             return False
+#
+#     def build(self, target: str = "all", build_type: Optional[str] = None) -> bool:
+#         """
+#         Build the project using the generated build system.
+#
+#         Args:
+#             target: The target to build (default: "all")
+#             build_type: Optional build type override
+#
+#         Returns:
+#             bool: True if build was successful, False otherwise
+#         """
+#         try:
+#             build_dir = self.project_path / "build"
+#
+#             if not build_dir.exists():
+#                 self.logger.error(
+#                     "Build directory does not exist. Generate build system first."
+#                 )
+#                 return False
+#
+#             # If build_type is specified, regenerate build system with that type
+#             if build_type:
+#                 if not self.generate_build_system(build_type):
+#                     return False
+#
+#             # Build the project
+#             cmd = ["cmake", "--build", str(build_dir), "--target", target]
+#
+#             self.logger.info(f"Building project with command: {' '.join(cmd)}")
+#             result = subprocess.run(cmd, capture_output=True, text=True)
+#
+#             if result.returncode != 0:
+#                 self.logger.error(f"Build failed: {result.stderr}")
+#                 return False
+#
+#             self.logger.info(f"Target '{target}' built successfully")
+#             return True
+#
+#         except Exception as e:
+#             self.logger.error(f"Error building project: {str(e)}")
+#             return False
+#
+#     def run_tests(self) -> bool:
+#         """
+#         Run the project tests using CTest.
+#
+#         Returns:
+#             bool: True if tests passed, False otherwise
+#         """
+#         if not self.config.enable_testing:
+#             self.logger.warning("Testing is not enabled in this project")
+#             return False
+#
+#         try:
+#             build_dir = self.project_path / "build"
+#
+#             if not build_dir.exists():
+#                 self.logger.error(
+#                     "Build directory does not exist. Generate build system first."
+#                 )
+#                 return False
+#
+#             # Run tests
+#             cmd = ["ctest", "--test-dir", str(build_dir), "--output-on-failure"]
+#
+#             self.logger.info(f"Running tests with command: {' '.join(cmd)}")
+#             result = subprocess.run(cmd, capture_output=True, text=True)
+#
+#             if result.returncode != 0:
+#                 self.logger.error(f"Tests failed: {result.stderr}")
+#                 return False
+#
+#             self.logger.info("All tests passed successfully")
+#             return True
+#
+#         except Exception as e:
+#             self.logger.error(f"Error running tests: {str(e)}")
+#             return False
+#
+#     def add_library(self, library_name: str) -> bool:
+#         """
+#         Add a new library to the project.
+#
+#         Args:
+#             library_name: Name of the library to add
+#
+#         Returns:
+#             bool: True if library was added successfully, False otherwise
+#         """
+#         try:
+#             # Create library directory
+#             lib_dir = self.project_path / "src" / library_name
+#             os.makedirs(lib_dir, exist_ok=True)
+#
+#             # Create library header directory
+#             header_dir = (
+#                 self.project_path / "include" / self.project_name / library_name
+#             )
+#             os.makedirs(header_dir, exist_ok=True)
+#
+#             # Create library source file
+#             lib_source = lib_dir / f"{library_name}.cpp"
+#             with open(lib_source, "w") as f:
+#                 f.write(
+#                     f"""/**
+#  * {library_name}.cpp
+#  *
+#  * Implementation of the {library_name} library.
+#  */
+# #include "{self.project_name}/{library_name}/{library_name}.h"
+#
+# namespace {self.project_name} {{
+# namespace {library_name} {{
+#
+# // Library implementation goes here
+#
+# }} // namespace {library_name}
+# }} // namespace {self.project_name}
+# """
+#                 )
+#
+#             # Create library header file
+#             lib_header = header_dir / f"{library_name}.h"
+#             with open(lib_header, "w") as f:
+#                 header_guard = f"{self.project_name.upper()}_{library_name.upper()}_H"
+#                 f.write(
+#                     f"""/**
+#  * {library_name}.h
+#  *
+#  * Header file for the {library_name} library.
+#  */
+# #ifndef {header_guard}
+# #define {header_guard}
+#
+# namespace {self.project_name} {{
+# namespace {library_name} {{
+#
+# // Library interface goes here
+#
+# }} // namespace {library_name}
+# }} // namespace {self.project_name}
+#
+# #endif // {header_guard}
+# """
+#                 )
+#
+#             # Create library CMakeLists.txt
+#             lib_cmakelists = lib_dir / "CMakeLists.txt"
+#             with open(lib_cmakelists, "w") as f:
+#                 f.write(
+#                     f"""# CMakeLists.txt for {library_name} library
+#
+# add_library({library_name}
+#     {library_name}.cpp
+# )
+#
+# target_include_directories({library_name}
+#     PUBLIC
+#         ${{CMAKE_SOURCE_DIR}}/include
+# )
+#
+# target_compile_features({library_name} PUBLIC cxx_std_17)
+#
+# # Add library-specific dependencies here
+# # target_link_libraries({library_name} PUBLIC dependency)
+# """
+#                 )
+#
+#             # Update src/CMakeLists.txt to include the new library
+#             src_cmakelists_path = self.project_path / "src" / "CMakeLists.txt"
+#             with open(src_cmakelists_path, "r") as f:
+#                 content = f.read()
+#
+#             # Add subdirectory for the new library
+#             if "add_subdirectory" in content:
+#                 # Insert before the last add_subdirectory or at the end
+#                 if "add_subdirectory" in content:
+#                     lines = content.splitlines()
+#                     last_add_idx = -1
+#                     for i, line in enumerate(lines):
+#                         if "add_subdirectory" in line:
+#                             last_add_idx = i
+#
+#                     if last_add_idx >= 0:
+#                         lines.insert(
+#                             last_add_idx + 1, f"add_subdirectory({library_name})"
+#                         )
+#                         updated_content = "\n".join(lines)
+#                     else:
+#                         updated_content = (
+#                             content + f"\nadd_subdirectory({library_name})\n"
+#                         )
+#                 else:
+#                     updated_content = content + f"\nadd_subdirectory({library_name})\n"
+#
+#                 with open(src_cmakelists_path, "w") as f:
+#                     f.write(updated_content)
+#
+#             self.logger.info(f"Library '{library_name}' added successfully")
+#             return True
+#
+#         except Exception as e:
+#             self.logger.error(f"Error adding library: {str(e)}")
+#             return False
+#
+#     def add_executable(self, executable_name: str) -> bool:
+#         """
+#         Add a new executable to the project.
+#
+#         Args:
+#             executable_name: Name of the executable to add
+#
+#         Returns:
+#             bool: True if executable was added successfully, False otherwise
+#         """
+#         try:
+#             # Create executable directory
+#             exe_dir = self.project_path / "src" / executable_name
+#             os.makedirs(exe_dir, exist_ok=True)
+#
+#             # Create executable source file
+#             exe_source = exe_dir / f"{executable_name}.cpp"
+#             with open(exe_source, "w") as f:
+#                 f.write(
+#                     f"""/**
+#  * {executable_name}.cpp
+#  *
+#  * Implementation of the {executable_name} executable.
+#  */
+# #include <iostream>
+# #include "{self.project_name}/{self.project_name}.h"
+#
+# int main(int argc, char** argv) {{
+#     std::cout << "Hello from {executable_name}!" << std::endl;
+#     return 0;
+# }}
+# """
+#                 )
+#
+#             # Create executable CMakeLists.txt
+#             exe_cmakelists = exe_dir / "CMakeLists.txt"
+#             with open(exe_cmakelists, "w") as f:
+#                 f.write(
+#                     f"""# CMakeLists.txt for {executable_name} executable
+#
+# add_executable({executable_name}
+#     {executable_name}.cpp
+# )
+#
+# target_include_directories({executable_name}
+#     PRIVATE
+#         ${{CMAKE_SOURCE_DIR}}/include
+# )
+#
+# target_compile_features({executable_name} PRIVATE cxx_std_17)
+#
+# # Add executable-specific dependencies here
+# # target_link_libraries({executable_name} PRIVATE dependency)
+#
+# # Install the executable
+# install(TARGETS {executable_name}
+#     RUNTIME DESTINATION bin
+# )
+# """
+#                 )
+#
+#             # Update src/CMakeLists.txt to include the new executable
+#             src_cmakelists_path = self.project_path / "src" / "CMakeLists.txt"
+#             with open(src_cmakelists_path, "r") as f:
+#                 content = f.read()
+#
+#             # Add subdirectory for the new executable
+#             if "add_subdirectory" in content:
+#                 # Insert before the last add_subdirectory or at the end
+#                 lines = content.splitlines()
+#                 last_add_idx = -1
+#                 for i, line in enumerate(lines):
+#                     if "add_subdirectory" in line:
+#                         last_add_idx = i
+#
+#                 if last_add_idx >= 0:
+#                     lines.insert(
+#                         last_add_idx + 1, f"add_subdirectory({executable_name})"
+#                     )
+#                     updated_content = "\n".join(lines)
+#                 else:
+#                     updated_content = (
+#                         content + f"\nadd_subdirectory({executable_name})\n"
+#                     )
+#             else:
+#                 updated_content = content + f"\nadd_subdirectory({executable_name})\n"
+#
+#             with open(src_cmakelists_path, "w") as f:
+#                 f.write(updated_content)
+#
+#             self.logger.info(f"Executable '{executable_name}' added successfully")
+#             return True
+#
+#         except Exception as e:
+#             self.logger.error(f"Error adding executable: {str(e)}")
+#             return False

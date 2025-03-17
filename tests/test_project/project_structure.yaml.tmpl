@@ -1,0 +1,49 @@
+project_name: MyCMakeProject
+version: 1.0.0
+author: Your Name
+
+directories:
+  src:
+    utils:
+      - description: Utility functions
+        math:
+          - description: Mathematical utilities
+        string:
+          - description: String manipulation utilities
+  tests:
+    unit_tests:
+      - description: Unit tests for the project
+        utils_tests:
+          - description: Tests for utility functions
+  docs:
+    api_docs:
+      - description: API documentation
+  build: []
+  cmake: []
+
+dependencies:
+  external_lib:
+    git: https://github.com/Name/Repo.git
+    version: 1.2.3
+    branch: main  # Optional: specify a branch
+    tag: v1.2.3  # Optional: specify a tag
+    commit: abcdef1234567890abcdef1234567890abcdef12  # Optional: specify a commit hash
+
+compiler:
+  compiler_type: gcc  # Options: gcc, mingw, embedded
+  compiler_path: /usr/bin/gcc  # Path to the compiler executable
+  cxx_standard: 17  # C++ standard version
+  flags:
+    - -Wall
+    - -Wextra
+    - -Werror
+  defines:
+    - DEBUG
+    - USE_CUSTOM_ALLOCATOR
+
+cmake:
+  build_type: Release  # Options: Debug, Release, RelWithDebInfo, MinSizeRel
+  options:
+    CMAKE_EXPORT_COMPILE_COMMANDS: ON
+    CMAKE_POSITION_INDEPENDENT_CODE: ON
+  custom_cmake_path: custom/CMakeLists.txt  # Optional: specify a custom CMake file path
